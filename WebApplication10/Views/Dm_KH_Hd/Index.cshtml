@@ -1,0 +1,188 @@
+﻿@model IEnumerable<WebApplication10.Models.HopDong>
+
+@{
+    ViewBag.Title = "Quản lý Hợp Đồng";
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    @TempData["SuccessMessage"]
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>}
+
+@if (TempData["ErrorMessage"] != null)
+{
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    @TempData["ErrorMessage"]
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>}
+
+<h2 class="my-4 text-center">Danh sách Hợp Đồng</h2>
+
+<div class="mb-3 d-flex justify-content-between align-items-end">
+    <div class="d-flex">
+        <div class="me-2">
+            <label for="branchFilter" class="form-label">Chọn Chi Nhánh:</label>
+            <select id="branchFilter" class="form-select">
+                <option value="">Tất cả</option>
+                @foreach (var item in ViewBag.DvcsList as List<SelectListItem>)
+                {
+                    <option value="@item.Value">@item.Text</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="col-6 text-end">
+        <button id="createButton" class="btn btn-warning" style="width: 200px; border: 1px solid; float: right;">Thêm Hợp Đồng</button>
+    </div>
+</div>
+<table class="table table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th scope="col">Mã Đối Tượng</th>
+            <th scope="col">Mã Chi Nhánh</th>
+            <th scope="col">Số Hợp Đồng</th>
+            <th scope="col">Hành Động</th>
+        </tr>
+    </thead>
+    <tbody id="hopDongTableBody">
+        @if (Model != null)
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Ma_Dt</td>
+                    <td>@item.Ma_Dvcs</td>
+                    <td>@item.So_Hop_Dong</td>
+                    <td class="action-column">
+                        <div class="action-buttons">
+                            <!-- Nút Sửa -->
+                            <a href="@Url.Action("Edit", "Dm_KH_Hd", new { id = item.Ma_Dt })" class="btn btn-info btn-sm edit-button">Sửa</a>
+
+                            <!-- Nút Xóa -->
+                            <a href="@Url.Action("Delete", "Dm_KH_Hd", new { id = item.Ma_Dt })" class="btn btn-danger btn-sm edit-button">Xóa</a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="4" class="text-center">Không có dữ liệu</td></tr>
+        }
+    </tbody>
+
+</table>
+
+@section Scripts {
+    <script type="text/javascript">
+       $(document).ready(function () {
+            // Xử lý sự kiện click của nút Lọc
+            $('#filterButton').click(function () {
+                var selectedBranch = $('#branchFilter').val();
+
+                $.ajax({
+                    url: '@Url.Action("FilterByBranch", "Dm_KH_Hd")',
+                    type: 'GET',
+                    data: { Ma_dvcs: selectedBranch },
+                    success: function (data) {
+                        $('#hopDongTableBody').empty(); // Xóa dữ liệu cũ trong bảng
+
+                        // Kiểm tra xem có dữ liệu trả về không
+                        if (data.length > 0) {
+                            $.each(data, function (index, item) {
+                                var row = '<tr>' +
+                                    '<td>' + item.Ma_Dt + '</td>' +
+                                    '<td>' + item.Ma_Dvcs + '</td>' +
+                                    '<td>' + item.So_Hop_Dong + '</td>' +
+                                    '<td>' +
+                                    '<a href="@Url.Action("Edit", "Dm_KH_Hd")/' + item.Ma_Dt + '" class="btn btn-info btn-sm edit-button">Sửa</a> ' +
+                                    '<a href="@Url.Action("Delete", "Dm_KH_Hd")/' + item.Ma_Dt + '" class="btn btn-info btn-sm edit-button">Xóa</a> ' +
+                                    '<input type="hidden" name="id" value="' + item.Ma_Dt + '" />' +
+                                    '@Html.AntiForgeryToken()' +
+                                    '<button type="submit" class="btn btn-danger btn-sm">Xóa</button>' +
+                                    '</form>' +
+                                    '</td>' +
+                                    '</tr>';
+                                $('#hopDongTableBody').append(row); // Thêm hàng mới vào bảng
+                            });
+                        } else {
+                            $('#hopDongTableBody').append('<tr><td colspan="4" class="text-center">Không có dữ liệu</td></tr>');
+                        }
+                    },
+                    error: function () {
+                        alert('Đã có lỗi xảy ra');
+                    }
+                });
+            });
+
+            // Xử lý sự kiện click của nút Thêm
+            $('#createButton').click(function () {
+                var selectedBranch = $('#branchFilter').val();
+                if (selectedBranch) {
+                    // Construct the URL with the maDvcs parameter
+                    var createUrl = '@Url.Action("Create", "Dm_KH_Hd")' + '?maDvcs=' + selectedBranch;
+                    window.location.href = createUrl; // Navigate to the create page
+                } else {
+                    alert('Vui lòng chọn chi nhánh trước khi thêm mới.');
+                }
+            });
+                       // Xử lý sự kiện click của nút Xóa
+           // Xử lý sự kiện click của nút Xóa
+           $('.delete-form').submit(function (e) {
+               e.preventDefault(); // Ngăn chặn hành động mặc định của form
+
+               var formData = $(this).serialize(); // Thu thập dữ liệu form
+               var actionUrl = $(this).attr('action'); // Lấy URL action của form
+
+               if (confirm('Bạn có chắc chắn muốn xóa hợp đồng này?')) {
+                   $.post(actionUrl, formData)
+                       .done(function (data) {
+                           window.location.reload(); // Tải lại trang sau khi xóa thành công
+                       })
+                       .fail(function () {
+                           alert('Đã có lỗi xảy ra trong quá trình xóa hợp đồng.');
+                       });
+               }
+           });
+
+        });
+
+    </script>
+}
+
+
+<style>
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        font-weight: bold;
+    }
+
+    .table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .table-dark {
+        background-color: #343a40;
+        color: white;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .action-column {
+        display: flex;
+        align-items: center;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 5px; /* Khoảng cách giữa các nút */
+    }
+
+</style>

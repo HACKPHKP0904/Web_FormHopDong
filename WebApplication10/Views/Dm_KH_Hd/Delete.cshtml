@@ -1,0 +1,77 @@
+﻿@model WebApplication10.Models.HopDong
+
+@{
+    ViewBag.Title = "Xác nhận xóa Hợp Đồng";
+}
+
+<h2 style="text-align:center; color:red;">Xóa Hợp Đồng</h2>
+
+@using (Html.BeginForm("DeleteConfirmed", "Dm_KH_Hd", new { id = Model.Id }, FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <h4 style="text-align:center">Chi tiết Hợp Đồng</h4>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        @Html.HiddenFor(model => model.Id)
+        @Html.HiddenFor(model => model.Ma_Dvcs)
+        @Html.HiddenFor(model => model.Ma_Dt)
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Ma_Dvcs, "Chi Nhánh", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <span>@Model.Ma_Dvcs</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Ma_Dt, "Đối Tượng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                <span>@Model.Ma_Dt</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.So_Hop_Dong, "Số Hợp Đồng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DisplayFor(model => model.So_Hop_Dong)
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Xác nhận xóa" class="btn btn-danger" /> |
+                @Html.ActionLink("Hủy", "Index", null, new { @class = "btn btn-default" })
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $("#deleteForm").submit(function (event) {
+                event.preventDefault(); // Prevent default form submission
+
+                var formData = $(this).serialize(); // Serialize form data
+                $.ajax({
+                    url: '@Url.Action("DeleteConfirmed", "Dm_KH_Hd")',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        // Redirect to the index page or handle success response
+                        window.location.href = '@Url.Action("Index", "Dm_KH_Hd")';
+                    },
+                    error: function (xhr, status, error) {
+                        // Handle error response as needed
+                        console.log(error);
+                    }
+                });
+            });
+        });
+    </script>
+}

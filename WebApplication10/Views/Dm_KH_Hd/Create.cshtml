@@ -1,0 +1,127 @@
+﻿@model WebApplication10.Models.HopDong
+
+@{
+    ViewBag.Title = "Create";
+}
+
+<h2 style="text-align:center;color:blue">Thêm Hợp Đồng</h2>
+
+@using (Html.BeginForm("Create", "Dm_KH_Hd", FormMethod.Post, new { id = "createForm" }))
+{
+    @Html.AntiForgeryToken()
+
+    <div class="form-horizontal">
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+        <div class="form-group">
+            @Html.Label("Mã Chi Nhánh", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.HiddenFor(model => model.Ma_Dvcs) <!-- Hidden field to store Ma_Dvcs -->
+                <input type="text" class="form-control" value="@Model.Ma_Dvcs" readonly /> <!-- Read-only display of Ma_Dvcs -->
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.Ma_Dt, "Mã Đối Tượng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.DropDownListFor(model => model.Ma_Dt, Model.MaDtList, "Chọn Mã Đối Tượng", new { @class = "form-control", id = "Ma_Dt" })
+                @Html.ValidationMessageFor(model => model.Ma_Dt, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            @Html.LabelFor(model => model.So_Hop_Dong, "Số Hợp Đồng", htmlAttributes: new { @class = "control-label col-md-2" })
+            <div class="col-md-10">
+                @Html.EditorFor(model => model.So_Hop_Dong, new { htmlAttributes = new { @class = "form-control" } })
+                @Html.ValidationMessageFor(model => model.So_Hop_Dong, "", new { @class = "text-danger" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-offset-2 col-md-10">
+                <input type="submit" value="Thêm" class="btn btn-danger btn-default" id="submitBtn" style="font-size:1.5rem;width:150px " />
+                <a href="@Url.Action("Index", "Dm_KH_Hd")" class="btn btn-info">Quay lại</a> <!-- Add the back button -->
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var urlParams = new URLSearchParams(window.location.search);
+            var maDvcs = urlParams.get('maDvcs');
+
+            if (maDvcs) {
+                // Gán giá trị maDvcs vào hidden field
+                $('input[name="Ma_Dvcs"]').val(maDvcs);
+
+                // Call AJAX to load Ma_dt based on maDvcs
+                $.ajax({
+                    url: '@Url.Action("LoadObjects", "Dm_KH_Hd")',
+                    type: 'GET',
+                    data: { maDvcs: maDvcs },
+                    success: function (data) {
+                        var maDtDropdown = $("#Ma_Dt");
+                        maDtDropdown.empty();
+                        $.each(data, function (index, item) {
+                            maDtDropdown.append($('<option/>', {
+                                value: item.Value,
+                                text: item.Text
+                            }));
+                        });
+                    },
+                    error: function () {
+                        console.log("Error loading Ma_dt list.");
+                    }
+                });
+            }
+
+            // Trigger change event for Ma_Dvcs dropdown
+            $("#Ma_Dvcs").change(function () {
+                var selectedBranch = $(this).val();
+                $.ajax({
+                    url: '@Url.Action("LoadObjects", "Dm_KH_Hd")',
+                    type: 'GET',
+                    data: { maDvcs: selectedBranch },
+                    success: function (data) {
+                        var maDtDropdown = $("#Ma_Dt");
+                        maDtDropdown.empty();
+                        $.each(data, function (index, item) {
+                            maDtDropdown.append($('<option/>', {
+                                value: item.Value,
+                                text: item.Text
+                            }));
+                        });
+                    },
+                    error: function () {
+                        console.log("Error loading Ma_dt list.");
+                    }
+                });
+            });
+
+            // Prevent default form submission and handle it via AJAX
+            $("#createForm").submit(function (event) {
+                event.preventDefault(); // Prevent default form submission
+
+                var formData = $(this).serialize(); // Serialize form data
+                $.ajax({
+                    url: '@Url.Action("Create", "Dm_KH_Hd")',
+                    type: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        // Redirect to the index page or handle success response
+                        window.location.href = '@Url.Action("Index", "Dm_KH_Hd")';
+                    },
+                    error: function (xhr, status, error) {
+                        // Handle error response as needed
+                        console.log(error);
+                    }
+                });
+            });
+        });
+    </script>
+}
