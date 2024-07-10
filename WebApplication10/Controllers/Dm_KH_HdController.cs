@@ -163,8 +163,7 @@ namespace WebApplication10.Controllers
             return chiNhanhMap.ContainsKey(maDvcs) ? chiNhanhMap[maDvcs] : string.Empty;
         }
 
-        // Action method to load MaDtList based on Ma_Dvcs using AJAX
-        public ActionResult LoadObjects(string maDvcs)
+        public ActionResult LoadObjects(string maDvcs, string searchTerm)
         {
             List<SelectListItem> maDtList = new List<SelectListItem>();
 
@@ -172,20 +171,22 @@ namespace WebApplication10.Controllers
             {
                 SqlCommand command = new SqlCommand("usp_DmDtTdv_SAP_MauIn", connection);
                 command.CommandType = CommandType.StoredProcedure;
-                // Không cần thêm bất kỳ tham số nào nếu stored procedure không yêu cầu
+
+                // Thêm tham số vào stored procedure nếu cần thiết
+                // command.Parameters.AddWithValue("@ParameterName", parameterValue);
 
                 connection.Open();
                 command.CommandTimeout = 950;
                 SqlDataReader reader = command.ExecuteReader();
-
                 while (reader.Read())
                 {
-                    string dvcs = reader["Dvcs"].ToString().Trim(); // Lấy giá trị Dvcs từ cơ sở dữ liệu và loại bỏ khoảng trắng thừa
+                    string dvcs = reader["Dvcs"].ToString().Trim();
                     string maDt = reader["Ma_Dt"].ToString();
                     string tenDt = reader["Ten_Dt"].ToString();
 
-                    // So sánh giá trị Dvcs từ cơ sở dữ liệu với maDvcs được truyền vào, loại bỏ khoảng trắng thừa trước khi so sánh
-                    if (dvcs.Equals(maDvcs.Trim(), StringComparison.OrdinalIgnoreCase))
+                    // Lọc dữ liệu trong C#
+                    if (dvcs.Equals(maDvcs.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                        (string.IsNullOrEmpty(searchTerm) || maDt.ToLower().Contains(searchTerm.ToLower()) || tenDt.ToLower().Contains(searchTerm.ToLower())))
                     {
                         maDtList.Add(new SelectListItem
                         {
@@ -198,43 +199,8 @@ namespace WebApplication10.Controllers
                 reader.Close();
             }
 
-            return Json(maDtList, JsonRequestBehavior.AllowGet);
+            return Json(maDtList.Select(item => new { item.Text, item.Value }), JsonRequestBehavior.AllowGet);
         }
-        public ActionResult SearchMaDt1(string maDvcs)
-        {
-            if (!string.IsNullOrEmpty(maDvcs))
-            {
-                List<SelectListItem> maDtList = new List<SelectListItem>();
-                using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                SqlCommand command = new SqlCommand("usp_DmDtTdv_SAP_MauIn", connection);
-                command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("@_Ma_Dvcs", maDvcs);
-
-                connection.Open();
-                command.CommandTimeout = 950;
-                SqlDataReader reader = command.ExecuteReader();
-
-                while (reader.Read())
-                {
-                    string maDt = reader["Ma_dt"].ToString();
-                    string tenDt = reader["Ten_dt"].ToString();
-
-                    maDtList.Add(new SelectListItem
-                    {
-                        Text = $"{maDt} - {tenDt}",
-                        Value = maDt,
-                    });
-                }
-
-                reader.Close();
-            }
-
-            return Json(maDtList, JsonRequestBehavior.AllowGet);
-            }
-
-        }
-
 
         private string MapBranchNameToCode(string branchName)
         {

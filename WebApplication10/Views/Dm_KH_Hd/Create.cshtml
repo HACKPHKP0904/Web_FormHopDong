@@ -15,18 +15,18 @@
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
 
         <div class="form-group">
-            @Html.Label("Mã Chi Nhánh", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.LabelFor(model => model.Ma_Dvcs, "Mã Chi Nhánh", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.HiddenFor(model => model.Ma_Dvcs) <!-- Hidden field to store Ma_Dvcs -->
+                @Html.HiddenFor(model => model.Ma_Dvcs, new { @id = "Ma_Dvcs" }) <!-- Hidden field to store Ma_Dvcs -->
                 <input type="text" class="form-control" value="@Model.Ma_Dvcs" readonly /> <!-- Read-only display of Ma_Dvcs -->
             </div>
         </div>
 
         <div class="form-group">
-            @Html.LabelFor(model => model.Ma_Dt, "Mã Đối Tượng", htmlAttributes: new { @class = "control-label col-md-2" })
+            @Html.Label("Đối Tượng", htmlAttributes: new { @class = "control-label col-md-2" })
             <div class="col-md-10">
-                @Html.DropDownListFor(model => model.Ma_Dt, Model.MaDtList, "Chọn Mã Đối Tượng", new { @class = "form-control", id = "Ma_Dt" })
-                @Html.ValidationMessageFor(model => model.Ma_Dt, "", new { @class = "text-danger" })
+                <input type="text" id="dropdownInput" list="dropdownList" placeholder="Tìm kiếm loại đối tượng" class="form-control mt-2">
+                <datalist id="dropdownList"></datalist>
             </div>
         </div>
 
@@ -36,6 +36,12 @@
                 @Html.EditorFor(model => model.So_Hop_Dong, new { htmlAttributes = new { @class = "form-control" } })
                 @Html.ValidationMessageFor(model => model.So_Hop_Dong, "", new { @class = "text-danger" })
             </div>
+        </div>
+
+        <!-- Hidden fields for Ma_Dt and Ten_Dt -->
+        <div class="form-group">
+            @Html.HiddenFor(model => model.Ma_Dt, new { @id = "Ma_Dt" })
+            @Html.HiddenFor(model => model.Ten_Dt, new { @id = "Ten_Dt" })
         </div>
 
         <div class="form-group">
@@ -49,6 +55,7 @@
 
 @section Scripts {
     @Scripts.Render("~/bundles/jqueryval")
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script type="text/javascript">
         $(document).ready(function () {
@@ -56,52 +63,48 @@
             var maDvcs = urlParams.get('maDvcs');
 
             if (maDvcs) {
-                // Gán giá trị maDvcs vào hidden field
-                $('input[name="Ma_Dvcs"]').val(maDvcs);
+                $('#Ma_Dvcs').val(maDvcs);
 
-                // Call AJAX to load Ma_dt based on maDvcs
-                $.ajax({
-                    url: '@Url.Action("LoadObjects", "Dm_KH_Hd")',
-                    type: 'GET',
-                    data: { maDvcs: maDvcs },
-                    success: function (data) {
-                        var maDtDropdown = $("#Ma_Dt");
-                        maDtDropdown.empty();
-                        $.each(data, function (index, item) {
-                            maDtDropdown.append($('<option/>', {
-                                value: item.Value,
-                                text: item.Text
-                            }));
-                        });
-                    },
-                    error: function () {
-                        console.log("Error loading Ma_dt list.");
+                $('#dropdownInput').on('input', function () {
+                    var searchTerm = $(this).val();
+
+                    $.ajax({
+                        url: '@Url.Action("LoadObjects", "Dm_KH_Hd")',
+                        type: 'GET',
+                        data: { maDvcs: maDvcs, searchTerm: searchTerm }, // Chuyển cả searchTerm lên controller
+                        success: function (data) {
+                            console.log("Data received:", data);
+                            var maDtDropdown = $("#dropdownList");
+                            maDtDropdown.empty(); // Clear existing options
+                            $.each(data, function (index, item) {
+                                maDtDropdown.append($('<option>', {
+                                    value: item.Value,
+                                    text: item.Text
+                                }));
+                            });
+                        },
+                        error: function (xhr, status, error) {
+                            console.log("Error loading Ma_dt list.");
+                            console.log("Status:", status);
+                            console.log("Error:", error);
+                        }
+                    });
+                });
+
+                $('#dropdownInput').on('change', function () {
+                    var selectedOption = document.querySelector("#dropdownList option[value='" + this.value + "']");
+                    if (selectedOption) {
+                        var maDt = this.value.trim();
+                        var tenDt = selectedOption.textContent.split(' - ')[1].trim();
+
+                        $('#Ma_Dt').val(maDt);
+                        $('#Ten_Dt').val(tenDt);
+                    } else {
+                        $('#Ma_Dt').val("");
+                        $('#Ten_Dt').val("");
                     }
                 });
             }
-
-            // Trigger change event for Ma_Dvcs dropdown
-            $("#Ma_Dvcs").change(function () {
-                var selectedBranch = $(this).val();
-                $.ajax({
-                    url: '@Url.Action("LoadObjects", "Dm_KH_Hd")',
-                    type: 'GET',
-                    data: { maDvcs: selectedBranch },
-                    success: function (data) {
-                        var maDtDropdown = $("#Ma_Dt");
-                        maDtDropdown.empty();
-                        $.each(data, function (index, item) {
-                            maDtDropdown.append($('<option/>', {
-                                value: item.Value,
-                                text: item.Text
-                            }));
-                        });
-                    },
-                    error: function () {
-                        console.log("Error loading Ma_dt list.");
-                    }
-                });
-            });
 
             // Prevent default form submission and handle it via AJAX
             $("#createForm").submit(function (event) {
@@ -113,11 +116,9 @@
                     type: 'POST',
                     data: formData,
                     success: function (response) {
-                        // Redirect to the index page or handle success response
                         window.location.href = '@Url.Action("Index", "Dm_KH_Hd")';
                     },
                     error: function (xhr, status, error) {
-                        // Handle error response as needed
                         console.log(error);
                     }
                 });
